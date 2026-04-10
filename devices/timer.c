@@ -176,7 +176,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-  // [p2-3] for mlqfs, update thread recent_cpu, priority,
   if(thread_mlfqs) {
     mlfqs_increment_recent_cpu();
     if(ticks%4 == 0) {
@@ -188,7 +187,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
       }
 }
   }
-  // [p1] Implement thread_awake() function to the timer interrupt
   thread_awake(ticks);	// do the job at every ticks
 }
 

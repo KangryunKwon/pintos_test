@@ -11,7 +11,8 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
-//[p2-3] for fixed_point cal 
+
+
 #include "threads/fixed_point.h"
 
 #ifdef USERPROG
@@ -109,7 +110,7 @@ thread_init (void)
 
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
-//[p2-3] 
+
 int load_avg;
 void
 thread_start (void) 
@@ -125,7 +126,8 @@ thread_start (void)
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
 }
-// [p2-3] mlfqs_cal 
+
+
 void
 mlfqs_update_priority(struct thread *t){
     if(t==idle_thread)
@@ -133,7 +135,7 @@ mlfqs_update_priority(struct thread *t){
     
     t->priority = fp_to_int(add_mixed(div_mixed(t->recent_cpu, -4), PRI_MAX - t->niceness*2));
 }
-// [p2-3] mlfqs_update_recent_cpu
+
 void
 mlfqs_update_recent_cpu(struct thread *t)
 {
@@ -143,7 +145,7 @@ mlfqs_update_recent_cpu(struct thread *t)
     int term = mult_fp(coef, t->recent_cpu);
     t->recent_cpu = add_mixed(term, t->niceness);
 }
-// [p2-3] mlfqs load_avg 
+
 void
 mlfqs_update_load_avg(void)
 {
@@ -158,7 +160,7 @@ mlfqs_update_load_avg(void)
     load_avg = add_fp(term1, term2);
 }
 
-// [p2-3] recent_cpu+1, re-cal recent_cpu,  priority
+
 void
 mlfqs_increment_recent_cpu(void)
 {
@@ -283,7 +285,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  // [p2-1] Modification of thread_create() for priority scheduling
+  
   // change thread priority if needed
   thread_test_preemption();
 
@@ -325,7 +327,7 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   //list_push_back (&ready_list, &t->elem);
 
-  // [p2-1] Modification of thread_unblock() function 
+
   list_insert_ordered (&ready_list, &t->elem, thread_compare_priority, 0);
   
   t->status = THREAD_READY;
@@ -400,7 +402,7 @@ thread_yield (void)
   if (cur != idle_thread) 
     //list_push_back (&ready_list, &cur->elem);
 
-	// [p2-1] Modification of thread_yield() funciton 
+
 	list_insert_ordered (&ready_list, &cur->elem, thread_compare_priority, 0);
   cur->status = THREAD_READY;
   schedule ();
@@ -465,10 +467,10 @@ void
 thread_set_priority (int new_priority) 
 {
   //thread_current ()->priority = new_priority;
-  // [p2-3]
+
   if(thread_mlfqs)
       return;
-  // [p2-2] Modification for priority donation 
+
   int old_priority = thread_current ()->priority;
   thread_current ()->initial_priority = new_priority;
   thread_update_donated_priority();
@@ -479,8 +481,7 @@ thread_set_priority (int new_priority)
 	  thread_test_preemption ();
 
 
-  // [p2-1] Modification of thread_set_priority() for priority scheduling 
-  // [p2-2] moved to upper if condition statement
+
   //thread_test_preemption();
 
 }
@@ -492,7 +493,7 @@ thread_get_priority (void)
   return thread_current ()->priority;
 }
 
-// [p2-1] Implementation of thread_compare_priority() function 
+
 bool
 thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 	const struct thread *a_entry = list_entry(a, struct thread, elem);
@@ -501,7 +502,7 @@ thread_compare_priority (const struct list_elem *a, const struct list_elem *b, v
 	return (a_entry -> priority) > (b_entry -> priority);
 }
 
-// [p2-1] Implementation of thread_test_preemption() function 
+
 void
 thread_test_preemption(void){
 	if (!list_empty(&ready_list)){
@@ -516,7 +517,7 @@ thread_test_preemption(void){
 	else return;
 }
 
-// [p2-2] Used in threads/synch.c/lock_acquire()
+
 bool 
 thread_compare_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 
@@ -526,8 +527,6 @@ thread_compare_donate_priority (const struct list_elem *a, const struct list_ele
 	return (a_entry -> priority) > (b_entry -> priority);	
 }
 
-
-// [p2-2] Function for priority donation 
 void 
 thread_donate_priority (void){
 	int depth;
@@ -549,7 +548,7 @@ thread_donate_priority (void){
 }
 
 
-// [p2-2] Used in threads/synch.c/lock_release()
+
 void
 thread_remove_lock_holder (struct lock *lock){
 	struct list_elem *e;
@@ -563,7 +562,7 @@ thread_remove_lock_holder (struct lock *lock){
 }
 
 
-// [p2-2] Used in threads/synch.c/lock_release()
+
 void 
 thread_update_donated_priority (void){
 	struct thread *cur = thread_current();
@@ -719,7 +718,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
 
-  // [p2-2] Add initialization for priority donation using lock synch.
   t->initial_priority = priority;
   t->wait_on_lock = NULL;
   t->niceness = 0;

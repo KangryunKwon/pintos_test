@@ -70,7 +70,6 @@ sema_down (struct semaphore *sema)
     {
 	  //list_push_back (&sema->waiters, &thread_current ()->elem);
 
-	  // [p2-2] sema: making sema from FIFO to Priority based
 	  list_insert_ordered (&sema->waiters, &thread_current ()->elem, 
 	  		  thread_compare_priority, 0);
 
@@ -120,7 +119,7 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) {
-	  // [p2-2] Making sema from FIFO to priority based
+
 	  list_sort (&sema->waiters, thread_compare_priority, 0);
 
 
@@ -129,7 +128,7 @@ sema_up (struct semaphore *sema)
   }
   sema->value++;
   
-  // [p2-2] 
+
   thread_test_preemption ();	
 
 
@@ -211,14 +210,14 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-  //[p2-3] 
+
   if(thread_mlfqs){
       sema_down(&lock->semaphore);
       lock->holder=thread_current();
       return;
   }
 
-  // [p2-2] Midification for priority donation 
+
   struct thread *cur = thread_current();
   struct thread *holder = lock->holder;
 
@@ -233,7 +232,7 @@ lock_acquire (struct lock *lock)
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 
-  // [p2-2] 
+
   cur->wait_on_lock = NULL;
   lock->holder = cur;
 
@@ -269,13 +268,12 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  // [p2-3]
+
   if(thread_mlfqs){
       lock->holder=NULL;
       sema_up(&lock->semaphore);
       return;
   }
-  // [p2-2] Modification for priority donation
   thread_remove_lock_holder (lock);
   thread_update_donated_priority();
 
@@ -302,7 +300,6 @@ struct semaphore_elem
     struct semaphore semaphore;         /* This semaphore. */
   };
 
-// [p2-2] condvar: a function for comparing priority of the front threads of waiters in semaphore_elem
 bool
 sema_compare_priority (const struct list_elem *a, const struct list_elem *b,
 		void *aux UNUSED)
@@ -365,7 +362,7 @@ cond_wait (struct condition *cond, struct lock *lock)
   sema_init (&waiter.semaphore, 0);
   //list_push_back (&cond->waiters, &waiter.elem);
 
-  // [p2-2] condvar: priority scheduling implementation 
+
   list_insert_ordered (&cond->waiters, &waiter.elem, sema_compare_priority, 0);
 
 
@@ -391,7 +388,6 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
 
   if (!list_empty (&cond->waiters)) 
   {
-	// [p2-2] condvar: priority scheduling implementation 
 	list_sort (&cond->waiters, sema_compare_priority, 0);
 
 

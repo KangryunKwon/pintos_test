@@ -90,13 +90,13 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 	 int64_t wakeup_tick;	// a ticks to wake up
-   // [p2-3] 
+
     int niceness;
     int recent_cpu;
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-	// [p2-2] For implementing the priority donation
+
 	int initial_priority;
 	struct lock *wait_on_lock;
 	struct list donations;
@@ -144,17 +144,14 @@ void thread_awake (int64_t current_tick);
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
-// [p2-1] Add newly defined functions
 bool thread_compare_priority (const struct list_elem *, const struct list_elem *, void *);
 void thread_test_preemption (void);
 
-// [p2-2] Add newly defined functions
 bool thread_compare_donate_priority (const struct list_elem *, const struct list_elem *, void *);
 void thread_donate_priority (void);
 void thread_remove_lock_holder (struct lock *);
 void thread_update_donated_priority (void);
 
-// [p2-3] add newly defined functions
 /* mlfqs 관련 함수들 */
 void mlfqs_update_priority(struct thread *t);
 void mlfqs_calculate_recent_cpu(struct thread *t);
