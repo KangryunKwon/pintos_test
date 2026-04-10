@@ -100,7 +100,6 @@ timer_sleep (int64_t ticks)
   thread_sleep(start+ticks);
 }
 
-
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
    turned on. */
 void
