@@ -31,9 +31,9 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
-// [p1] A list to keep track of the sleeping threads
-static struct list sleep_list;
 
+static struct list sleep_list;
+static int64_t next_tick_to_awake = INT64_MAX;
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -98,7 +98,6 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-  // [p1] Add sleep_list initialization
   list_init (&sleep_list);
 
   /* Set up a thread structure for the running thread. */
@@ -408,39 +407,42 @@ thread_yield (void)
   intr_set_level (old_level);
 }
 
-// [p1] Define thread_sleep function
-void
-thread_sleep (int64_t ticks){
-  struct thread *cur;
+
+void thread_sleep(int64_t ticks){
+  struct thread *curr = thread_current();
   enum intr_level old_level;
+  ASSERT(!intr_context());
+old_level = intr_disable();
 
-  old_level = intr_disable ();	// off the interrupt
-  cur = thread_current ();
-
-  ASSERT (cur != idle_thread);
-
-  cur -> wakeup = ticks;		// set the ticks to wake up
-  list_push_back (&sleep_list, &cur -> elem);	// add to the sleep_list
-  thread_block ();
-
-  intr_set_level (old_level);	// on the interupt
+if(curr != idle_thread){
+curr->wakeup_tick = ticks;
+update_next_tick_to_awake(curr->wakeup_tick);
+list_push_back(&sleep_list, &curr->elem);
+thread_block();
 }
-// [p1] Define thread_awake function 
-void
-thread_awake (int64_t ticks){
-  struct list_elem *e = list_begin(&sleep_list);
-
-  while (e != list_end(&sleep_list)) {
-	  struct thread *t = list_entry(e, struct thread, elem);
-	  if (t->wakeup <= ticks){	// check if it's time to wakeup
-		  e = list_remove(e);	// remove from the sleep list
-		  thread_unblock(t);	// unblock the thread
-	  }
-	  else
-		  e = list_next(e);		// skip to the next one
-  }
+intr_set_level (old_level);
 }
 
+void thread_awake(int64_t current_tick){
+next_tick_to_awake = INT64_MAX;
+struct list_elem *e = list_begin(&sleep_list);
+while (e != list_end (&sleep_list)){
+struct thread *t = list_entry(e,struct thread,elem);
+
+if (current_tick >= t->wakeup_tick){
+e=list_remove(e);
+thread_unblock(t);
+}
+else{
+update_next_tick_to_awake(t->wakeup_tick);
+e=list_next(e);
+}
+}}
+void update_next_tick_to_awake(int64_t ticks){
+next_tick_to_awake = (next_tick_to_awake>ticks)? ticks:next_tick_to_awake;
+}
+int64_t get_next_tick_to_awake(void){
+return next_tick_to_awake;}
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
 void

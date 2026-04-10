@@ -89,8 +89,7 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-	// [p1] Define a variable to store a ticks to wake up
-	int64_t wakeup;	// a ticks to wake up
+	 int64_t wakeup_tick;	// a ticks to wake up
    // [p2-3] 
     int niceness;
     int recent_cpu;
@@ -137,9 +136,9 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
-// [p1] Add newly defined functions
+
 void thread_sleep(int64_t ticks);
-void thread_awake(int64_t ticks);
+void thread_awake (int64_t current_tick);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);

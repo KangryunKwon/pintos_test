@@ -90,13 +90,16 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
-  // [p1] Use thread_sleep function to handle sleeping threads
-  thread_sleep (start + ticks);
 
   ASSERT (intr_get_level () == INTR_ON);
-//  while (timer_elapsed (start) < ticks) 
-//    thread_yield ();
+  /*ADDED*/
+  //if(ticks<=0) return 0;
+
+ /* while (timer_elapsed (start) < ticks) 
+    thread_yield ();*/
+  thread_sleep(start+ticks);
 }
+
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
    turned on. */
