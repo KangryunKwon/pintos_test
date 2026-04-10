@@ -72,7 +72,7 @@ sema_down (struct semaphore *sema)
 
 	  // [p2-2] sema: making sema from FIFO to Priority based
 	  list_insert_ordered (&sema->waiters, &thread_current ()->elem, 
-	  		  compare_thread_priority, 0);
+	  		  thread_compare_priority, 0);
 
 
       thread_block ();
@@ -121,7 +121,7 @@ sema_up (struct semaphore *sema)
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) {
 	  // [p2-2] Making sema from FIFO to priority based
-	  list_sort (&sema->waiters, compare_thread_priority, 0);
+	  list_sort (&sema->waiters, thread_compare_priority, 0);
 
 
 	  thread_unblock (list_entry (list_pop_front (&sema->waiters),
@@ -225,8 +225,8 @@ lock_acquire (struct lock *lock)
   if (holder){
   	cur->wait_on_lock = lock;
 	list_insert_ordered (&holder->donations, &cur->donation_elem,
-			compare_donate_priority, NULL);
-	donate_priority();
+			thread_compare_donate_priority, NULL);
+	thread_donate_priority();
   }
 
 
@@ -276,8 +276,8 @@ lock_release (struct lock *lock)
       return;
   }
   // [p2-2] Modification for priority donation
-  remove_lock_holder (lock);
-  update_priority();
+  thread_remove_lock_holder (lock);
+  thread_update_donated_priority();
 
 
   lock->holder = NULL;
