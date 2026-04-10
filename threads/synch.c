@@ -130,7 +130,7 @@ sema_up (struct semaphore *sema)
   sema->value++;
   
   // [p2-2] 
-  test_max_priority ();	
+  thread_test_preemption ();	
 
 
   intr_set_level (old_level);

@@ -178,12 +178,12 @@ timer_interrupt (struct intr_frame *args UNUSED)
   thread_tick ();
   // [p2-3] for mlqfs, update thread recent_cpu, priority,
   if(thread_mlfqs) {
-    mlfqs_increase_recent_cpu();
+    mlfqs_increment_recent_cpu();
     if(ticks%4 == 0) {
         mlfqs_recalculate_priority();
         if(ticks%TIMER_FREQ==0){
             mlfqs_recalculate_recent_cpu();
-            mlfqs_calculate_load_avg();
+            mlfqs_update_load_avg();
 
       }
 }
