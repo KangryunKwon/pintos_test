@@ -145,23 +145,23 @@ typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
 // [p2-1] Add newly defined functions
-bool compare_thread_priority (const struct list_elem *, const struct list_elem *, void *);
-void test_max_priority (void);
+bool thread_compare_priority (const struct list_elem *, const struct list_elem *, void *);
+void thread_test_preemption (void);
 
 // [p2-2] Add newly defined functions
-bool compare_donate_priority (const struct list_elem *, const struct list_elem *, void *);
-void donate_priority (void);
-void remove_lock_holder (struct lock *);
-void update_priority (void);
+bool thread_compare_donate_priority (const struct list_elem *, const struct list_elem *, void *);
+void thread_donate_priority (void);
+void thread_remove_lock_holder (struct lock *);
+void thread_update_donated_priority (void);
 
 // [p2-3] add newly defined functions
 /* mlfqs 관련 함수들 */
-void mlfqs_priority(struct thread *t);
-void mlfqs_cal_recent_cpu(struct thread *t);
-void mlfqs_cal_load_avg(void);
-void increase_recent_cpu(void);
-void recal_recent_cpu(void);
-void recal_priority(void);
+void mlfqs_update_priority(struct thread *t);
+void mlfqs_calculate_recent_cpu(struct thread *t);
+void mlfqs_calculate_load_avg(void);
+void mlfqs_increase_recent_cpu(void);
+void mlfqs_recalculate_recent_cpu(void);
+void mlfqs_recalculate_priority(void);
 
 
 

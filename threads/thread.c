@@ -127,15 +127,15 @@ thread_start (void)
 }
 // [p2-3] mlfqs_cal 
 void
-mlfqs_priority(struct thread *t){
+mlfqs_update_priority(struct thread *t){
     if(t==idle_thread)
         return;
     
     t->priority = fp_to_int(add_mixed(div_mixed(t->recent_cpu, -4), PRI_MAX - t->niceness*2));
 }
-// [p2-3] mlfqs_cal_recent_cpu
+// [p2-3] mlfqs_update_recent_cpu
 void
-mlfqs_cal_recent_cpu(struct thread *t)
+mlfqs_update_recent_cpu(struct thread *t)
 {
     if (t==idle_thread)
         return;
@@ -145,7 +145,7 @@ mlfqs_cal_recent_cpu(struct thread *t)
 }
 // [p2-3] mlfqs load_avg 
 void
-mlfqs_cal_load_avg(void)
+mlfqs_update_load_avg(void)
 {
     int ready_threads;
     if(thread_current() == idle_thread)
@@ -160,7 +160,7 @@ mlfqs_cal_load_avg(void)
 
 // [p2-3] recent_cpu+1, re-cal recent_cpu,  priority
 void
-increase_recent_cpu(void)
+mlfqs_increment_recent_cpu(void)
 {
     if(thread_current() == idle_thread)
         return;
@@ -168,24 +168,24 @@ increase_recent_cpu(void)
         thread_current() -> recent_cpu = add_mixed(thread_current()-> recent_cpu,1);
 }
 void
-recal_recent_cpu(void)
+mlfqs_recalculate_recent_cpu(void)
 {
     struct list_elem *e;
 
     for(e = list_begin(&all_list); e!= list_end(&all_list); e = list_next(e)){
         struct thread *t = list_entry(e, struct thread, allelem);
-        mlfqs_cal_recent_cpu(t);
+        mlfqs_update_recent_cpu(t);
     }
 }
 void
-recal_priority(void)
+mlfqs_recalculate_priority(void)
 {
     struct list_elem *e;
 
 
     for(e = list_begin(&all_list); e!= list_end(&all_list); e = list_next(e)){
         struct thread *t = list_entry(e, struct thread, allelem);
-        mlfqs_priority(t);
+        mlfqs_update_priority(t);
     }
 }
 
@@ -285,7 +285,7 @@ thread_create (const char *name, int priority,
 
   // [p2-1] Modification of thread_create() for priority scheduling
   // change thread priority if needed
-  test_max_priority();
+  thread_test_preemption();
 
   return tid;
 }
@@ -326,7 +326,7 @@ thread_unblock (struct thread *t)
   //list_push_back (&ready_list, &t->elem);
 
   // [p2-1] Modification of thread_unblock() function 
-  list_insert_ordered (&ready_list, &t->elem, compare_thread_priority, 0);
+  list_insert_ordered (&ready_list, &t->elem, thread_compare_priority, 0);
   
   t->status = THREAD_READY;
   intr_set_level (old_level);
@@ -401,7 +401,7 @@ thread_yield (void)
     //list_push_back (&ready_list, &cur->elem);
 
 	// [p2-1] Modification of thread_yield() funciton 
-	list_insert_ordered (&ready_list, &cur->elem, compare_thread_priority, 0);
+	list_insert_ordered (&ready_list, &cur->elem, thread_compare_priority, 0);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -471,17 +471,17 @@ thread_set_priority (int new_priority)
   // [p2-2] Modification for priority donation 
   int old_priority = thread_current ()->priority;
   thread_current ()->initial_priority = new_priority;
-  update_priority();
+  thread_update_donated_priority();
 
   if (thread_current ()->priority > old_priority)
-	  donate_priority ();
+	  thread_donate_priority ();
   if (thread_current ()->priority < old_priority)
-	  test_max_priority ();
+	  thread_test_preemption ();
 
 
   // [p2-1] Modification of thread_set_priority() for priority scheduling 
   // [p2-2] moved to upper if condition statement
-  //test_max_priority();
+  //thread_test_preemption();
 
 }
 
@@ -492,18 +492,18 @@ thread_get_priority (void)
   return thread_current ()->priority;
 }
 
-// [p2-1] Implementation of compare_thread_priority() function 
+// [p2-1] Implementation of thread_compare_priority() function 
 bool
-compare_thread_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
+thread_compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 	const struct thread *a_entry = list_entry(a, struct thread, elem);
 	const struct thread *b_entry = list_entry(b, struct thread, elem);
 
 	return (a_entry -> priority) > (b_entry -> priority);
 }
 
-// [p2-1] Implementation of test_max_priority() function 
+// [p2-1] Implementation of thread_test_preemption() function 
 void
-test_max_priority(void){
+thread_test_preemption(void){
 	if (!list_empty(&ready_list)){
 		struct thread *cur = thread_current();
 		struct list_elem *e = list_begin(&ready_list);
@@ -518,7 +518,7 @@ test_max_priority(void){
 
 // [p2-2] Used in threads/synch.c/lock_acquire()
 bool 
-compare_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
+thread_compare_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED){
 
 	const struct thread *a_entry = list_entry(a, struct thread, donation_elem);
 	const struct thread *b_entry = list_entry(b, struct thread, donation_elem);
@@ -529,7 +529,7 @@ compare_donate_priority (const struct list_elem *a, const struct list_elem *b, v
 
 // [p2-2] Function for priority donation 
 void 
-donate_priority (void){
+thread_donate_priority (void){
 	int depth;
 	struct thread *cur = thread_current();
 
@@ -551,7 +551,7 @@ donate_priority (void){
 
 // [p2-2] Used in threads/synch.c/lock_release()
 void
-remove_lock_holder (struct lock *lock){
+thread_remove_lock_holder (struct lock *lock){
 	struct list_elem *e;
 	struct thread *cur = thread_current();
 
@@ -565,13 +565,13 @@ remove_lock_holder (struct lock *lock){
 
 // [p2-2] Used in threads/synch.c/lock_release()
 void 
-update_priority (void){
+thread_update_donated_priority (void){
 	struct thread *cur = thread_current();
 	
 	cur->priority = cur->initial_priority;
 	
 	if (!list_empty(&cur->donations)){
-		list_sort(&cur->donations, compare_donate_priority, 0);
+		list_sort(&cur->donations, thread_compare_donate_priority, 0);
 
 		struct thread *front = list_entry(list_front(&cur->donations), struct thread, donation_elem);
 		if (front->priority > cur->priority)
@@ -588,7 +588,7 @@ thread_set_nice (int nice UNUSED)
   /* Not yet implemented. */
   enum intr_level old_level = intr_disable();
   thread_current()->niceness=nice;
-  mlfqs_priority(thread_current());
+  mlfqs_update_priority(thread_current());
   if (!list_empty (&ready_list) && 
   thread_current ()->priority < 
   list_entry (list_front (&ready_list), struct thread, elem)->priority)
