@@ -188,6 +188,18 @@ mlfqs_recalculate_recent_cpu(void)
     }
 }
 
+void
+mlfqs_recalculate_priority(void)
+{
+    struct list_elem *e;
+
+
+    for(e = list_begin(&all_list); e!= list_end(&all_list); e = list_next(e)){
+        struct thread *t = list_entry(e, struct thread, allelem);
+        mlfqs_update_priority(t,NULL);
+    }
+}
+
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
 void
