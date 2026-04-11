@@ -153,7 +153,7 @@ void thread_remove_lock_holder (struct lock *);
 void thread_update_donated_priority (void);
 
 /* mlfqs 관련 함수들 */
-void mlfqs_update_priority(struct thread *t, void *aux UNUSED);
+void mlfqs_update_priority(struct thread *t);
 void mlfqs_calculate_recent_cpu(struct thread *t);
 void mlfqs_update_load_avg(void);
 void mlfqs_increment_recent_cpu(void);

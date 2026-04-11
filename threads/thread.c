@@ -11,7 +11,6 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
-#include "devices/timer.h"
 
 
 #include "threads/fixed_point.h"
@@ -130,26 +129,19 @@ thread_start (void)
 
 
 void
-mlfqs_update_priority(struct thread *t, void *aux UNUSED)
-{
-    if (t == idle_thread)
+mlfqs_update_priority(struct thread *t){
+    if(t==idle_thread)
         return;
-
-    int priority = PRI_MAX - (div_mixed(t->recent_cpu, 4) / F)
-                           - t->niceness * 2;
-
-    if (priority > PRI_MAX) priority = PRI_MAX;
-    if (priority < PRI_MIN) priority = PRI_MIN;
-
-    t->priority = priority;
+    
+    t->priority = fp_to_int(add_mixed(div_mixed(t->recent_cpu, -4), PRI_MAX - t->niceness*2));
 }
-void
-mlfqs_update_recent_cpu(struct thread *t, void *aux UNUSED)
-{
-    if (t == idle_thread)
-        return;
 
-    int coef = div_fp(mult_mixed(load_avg, 2),add_mixed(mult_mixed(load_avg, 2), 1));
+void
+mlfqs_update_recent_cpu(struct thread *t)
+{
+    if (t==idle_thread)
+        return;
+    int coef = div_fp(mult_mixed(load_avg, 2), add_mixed(mult_mixed(load_avg, 2), 1));
     int term = mult_fp(coef, t->recent_cpu);
     t->recent_cpu = add_mixed(term, t->niceness);
 }
@@ -159,9 +151,9 @@ mlfqs_update_load_avg(void)
 {
     int ready_threads;
     if(thread_current() == idle_thread)
-      ready_threads = list_size(&ready_list);
+        ready_threads = list_size(&ready_list);
     else
-       ready_threads = list_size(&ready_list) +1;
+        ready_threads = list_size(&ready_list) +1;
 
     int term1 = mult_fp(div_fp(int_to_fp(59),int_to_fp(60)), load_avg);
     int term2 = mult_mixed(div_fp(int_to_fp(1),int_to_fp(60)), ready_threads);   
@@ -184,10 +176,9 @@ mlfqs_recalculate_recent_cpu(void)
 
     for(e = list_begin(&all_list); e!= list_end(&all_list); e = list_next(e)){
         struct thread *t = list_entry(e, struct thread, allelem);
-        mlfqs_update_recent_cpu(t, NULL);
+        mlfqs_update_recent_cpu(t);
     }
 }
-
 void
 mlfqs_recalculate_priority(void)
 {
@@ -196,49 +187,34 @@ mlfqs_recalculate_priority(void)
 
     for(e = list_begin(&all_list); e!= list_end(&all_list); e = list_next(e)){
         struct thread *t = list_entry(e, struct thread, allelem);
-        mlfqs_update_priority(t,NULL);
+        mlfqs_update_priority(t);
     }
 }
+
+
 
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
 void
-thread_tick (void)
+thread_tick (void) 
 {
-    struct thread *t = thread_current ();
+  struct thread *t = thread_current ();
 
-    if (t == idle_thread)
-        idle_ticks++;
+  /* Update statistics. */
+  if (t == idle_thread)
+    idle_ticks++;
 #ifdef USERPROG
-    else if (t->pagedir != NULL)
-        user_ticks++;
+  else if (t->pagedir != NULL)
+    user_ticks++;
 #endif
-    else
-        kernel_ticks++;
+  else
+    kernel_ticks++;
 
-    if (thread_mlfqs) {
-        if (t != idle_thread)
-            t->recent_cpu = add_mixed(t->recent_cpu, 1);
-
-        if (timer_ticks() % TIMER_FREQ == 0) {
-            mlfqs_update_load_avg();
-            thread_foreach(mlfqs_update_recent_cpu, NULL);
-        }
-
-        if (timer_ticks() % 4 == 0) {
-            thread_foreach(mlfqs_update_priority, NULL);
-            list_sort(&ready_list, thread_compare_priority, NULL);
-
-            if (!list_empty(&ready_list) &&
-                thread_current()->priority <
-                list_entry(list_front(&ready_list), struct thread, elem)->priority)
-                intr_yield_on_return();
-        }
-    }
-
-    if (++thread_ticks >= TIME_SLICE)
-        intr_yield_on_return ();
+  /* Enforce preemption. */
+  if (++thread_ticks >= TIME_SLICE)
+    intr_yield_on_return ();
 }
+
 /* Prints thread statistics. */
 void
 thread_print_stats (void) 
@@ -611,7 +587,7 @@ thread_set_nice (int nice UNUSED)
   /* Not yet implemented. */
   enum intr_level old_level = intr_disable();
   thread_current()->niceness=nice;
-  mlfqs_update_priority(thread_current(), NULL);
+  mlfqs_update_priority(thread_current());
   if (!list_empty (&ready_list) && 
   thread_current ()->priority < 
   list_entry (list_front (&ready_list), struct thread, elem)->priority)
