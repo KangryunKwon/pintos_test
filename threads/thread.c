@@ -130,22 +130,6 @@ thread_start (void)
 
 
 void
-mlfqs_update_priority (struct thread *t)
-{
-    if (t == idle_thread)
-        return;
-
-    int recent_cpu_over_4 = div_mixed(t->recent_cpu, 4) / F;
-    int priority = PRI_MAX - recent_cpu_over_4 - t->niceness * 2;
-
-    if (priority > PRI_MAX)
-        priority = PRI_MAX;
-    if (priority < PRI_MIN)
-        priority = PRI_MIN;
-
-    t->priority = priority;
-}
-void
 mlfqs_update_recent_cpu(struct thread *t, void *aux UNUSED)
 {
     if (t == idle_thread)
@@ -616,7 +600,7 @@ thread_set_nice (int nice UNUSED)
   /* Not yet implemented. */
   enum intr_level old_level = intr_disable();
   thread_current()->niceness=nice;
-  mlfqs_update_priority(thread_current());
+  mlfqs_update_priority(thread_current(), NULL);
   if (!list_empty (&ready_list) && 
   thread_current ()->priority < 
   list_entry (list_front (&ready_list), struct thread, elem)->priority)
