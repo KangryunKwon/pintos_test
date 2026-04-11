@@ -183,7 +183,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
         if(ticks%TIMER_FREQ==0){
             mlfqs_update_load_avg();
             mlfqs_recalculate_recent_cpu();
-            mlfqs_update_load_avg();
       }
 }
   }
