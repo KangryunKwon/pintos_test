@@ -129,13 +129,13 @@ thread_start (void)
 
 
 void
-mlfqs_update_priority(struct thread *t)
+mlfqs_update_priority (struct thread *t)
 {
     if (t == idle_thread)
         return;
 
-    int priority = PRI_MAX - fp_to_int_zero(div_mixed(t->recent_cpu, 4))
-                           - t->niceness * 2;
+    int recent_cpu_over_4 = div_mixed(t->recent_cpu, 4) / F;
+    int priority = PRI_MAX - recent_cpu_over_4 - t->niceness * 2;
 
     if (priority > PRI_MAX)
         priority = PRI_MAX;
