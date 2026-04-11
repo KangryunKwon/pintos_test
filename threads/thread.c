@@ -130,6 +130,20 @@ thread_start (void)
 
 
 void
+mlfqs_update_priority(struct thread *t, void *aux UNUSED)
+{
+    if (t == idle_thread)
+        return;
+
+    int priority = PRI_MAX - (div_mixed(t->recent_cpu, 4) / F)
+                           - t->niceness * 2;
+
+    if (priority > PRI_MAX) priority = PRI_MAX;
+    if (priority < PRI_MIN) priority = PRI_MIN;
+
+    t->priority = priority;
+}
+void
 mlfqs_update_recent_cpu(struct thread *t, void *aux UNUSED)
 {
     if (t == idle_thread)
@@ -172,21 +186,6 @@ mlfqs_recalculate_recent_cpu(void)
         struct thread *t = list_entry(e, struct thread, allelem);
         mlfqs_update_recent_cpu(t, NULL);
     }
-}
-
-void
-mlfqs_update_priority(struct thread *t, void *aux UNUSED)
-{
-    if (t == idle_thread)
-        return;
-
-    int priority = PRI_MAX - (div_mixed(t->recent_cpu, 4) / F)
-                           - t->niceness * 2;
-
-    if (priority > PRI_MAX) priority = PRI_MAX;
-    if (priority < PRI_MIN) priority = PRI_MIN;
-
-    t->priority = priority;
 }
 
 /* Called by the timer interrupt handler at each timer tick.
